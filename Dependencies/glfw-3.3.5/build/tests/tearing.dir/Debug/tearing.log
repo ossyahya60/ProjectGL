@@ -1,0 +1,5 @@
+﻿  Building Custom Rule C:/OpenGL/glfw-3.3.5/glfw-3.3.5/tests/CMakeLists.txt
+  tearing.c
+  glad_gl.c
+  Generating Code...
+  tearing.vcxproj -> C:\OpenGL\glfw-3.3.5\glfw-3.3.5\build\tests\Debug\tearing.exe
