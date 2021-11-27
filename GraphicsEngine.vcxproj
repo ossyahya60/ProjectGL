@@ -151,6 +151,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Camera.cpp" />
     <ClCompile Include="Sources\Shader.cpp" />
     <ClCompile Include="Sources\glad.cpp" />
     <ClCompile Include="Sources\Main.cpp" />
@@ -158,6 +159,7 @@
     <ClCompile Include="Sources\Texture.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Camera.h" />
     <ClInclude Include="Sources\Shader.h" />
     <ClInclude Include="Sources\stb_image.h" />
     <ClInclude Include="Sources\Texture.h" />

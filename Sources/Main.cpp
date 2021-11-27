@@ -11,15 +11,78 @@
 
 GLFWwindow* window = NULL;
 
+//camera parameters
+glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, 3.0f);
+glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
+glm::vec3 cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
+
+float cameraSpeed = 0;
+float deltaTime = 0.02f;
+double prevWindowTime = 0;
+
+float mouseDeltaX = 0.0f;
+float mouseDeltaY = 0.0f;
+double prevMousePosX = 0.0;
+double prevMousePosY = 0.0;
+float pitch = 0.0f;
+float yaw = -90.0f;
+float roll = 0.0f;
+float sensetivity = 0.1f;
+bool firstMouse = true;
+float fov = 45;
+
 void framebuffer_size_callback(GLFWwindow* window, int width, int height) //On Resize function callback
 {
     glViewport(0, 0, width, height);
+}
+
+void mouse_callback(GLFWwindow* window, double xpos, double ypos) //called if mouse pos changed
+{
+    if (firstMouse)
+    {
+        prevMousePosX = xpos;
+        prevMousePosY = ypos;
+        firstMouse = false;
+    }
+
+    mouseDeltaX = (float)(xpos - prevMousePosX);
+    mouseDeltaY = (float)(ypos - prevMousePosY);
+
+    prevMousePosX = xpos;
+    prevMousePosY = ypos;
+
+    pitch += sensetivity * mouseDeltaY;
+    yaw += sensetivity * mouseDeltaX;
+
+    if (pitch > 89.0f)
+        pitch = 89.0f;
+    if (pitch < -89.0f)
+        pitch = -89.0f;
+}
+
+void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
+{
+    fov -= (float)yoffset;
+    if (fov < 1.0f)
+        fov = 1.0f;
+    if (fov > 45.0f)
+        fov = 45.0f;
 }
 
 void processInput(GLFWwindow* window)
 {
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(window, true);
+
+    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+        cameraPos += cameraSpeed * cameraFront;
+    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+        cameraPos -= cameraSpeed * cameraFront;
+    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+        cameraPos -= glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
+    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+        cameraPos += glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
+
 }
 
 void init()
@@ -48,6 +111,13 @@ void init()
     glViewport(0, 0, 800, 600);
 
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback); //register function
+
+    glfwSetCursorPosCallback(window, mouse_callback); //register mouse movement callback
+
+    glfwSetScrollCallback(window, scroll_callback); //mouse wheel movement callback
+
+    //disable cursor (cursor will not leave the window and will be hidden)
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 }
 
 void cleanUp()
@@ -183,6 +253,9 @@ int main()
 
     while (!glfwWindowShouldClose(window))
     {
+        deltaTime = (float)(glfwGetTime() - prevWindowTime);
+        prevWindowTime = glfwGetTime();
+        cameraSpeed = deltaTime;
         // process input
         processInput(window);
 
@@ -203,24 +276,22 @@ int main()
         
         //model matrix
         glm::mat4 model = glm::mat4(1.0f);
-        model = glm::rotate(model, (float)glfwGetTime() * glm::radians(50.0f), glm::vec3(0.5f, 1.0f, 0.0f));
+        model = glm::rotate(model, 0.0f, glm::vec3(0.5f, 1.0f, 0.0f));
+
+        cameraFront.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch)); //cos pitch * sin yaw
+        cameraFront.y = sin(glm::radians(-pitch)); //sin pitch (yaw must be initialized to -90 to face -z axis)
+        cameraFront.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch)); //cos pitch * cos yaw
+        cameraFront = glm::normalize(cameraFront);
 
         //view matrix
-        glm::mat4 view = glm::mat4(1.0f);
-        // note that we're translating the scene in the reverse direction of where we want to move
-        view = glm::translate(view, glm::vec3(0.0f, 0.0f, -3.0f));
-
-        float zoom = 0.0f;
-        if (glfwGetKey(window, GLFW_KEY_Z) == GLFW_PRESS)
-            zoom += 0.25f;
-        else if (glfwGetKey(window, GLFW_KEY_X) == GLFW_PRESS)
-            zoom -= 0.25;
+        glm::mat4 view;
+        view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp); //camera pos, target, global up direction
 
         int width, height;
         glfwGetWindowSize(window, &width, &height);
         //projection matrix
         glm::mat4 projection;
-        projection = glm::perspective(glm::radians(45.0f), (float)width / height + zoom, 0.1f, 100.0f);
+        projection = glm::perspective(glm::radians(fov), (float)width / height, 0.1f, 100.0f);
 
         mainShader.setMat4("model", 1, glm::value_ptr(model));
         mainShader.setMat4("view", 1, glm::value_ptr(view));
