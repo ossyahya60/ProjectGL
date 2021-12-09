@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
@@ -151,22 +151,26 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="Camera.cpp" />
-    <ClCompile Include="Sources\Shader.cpp" />
-    <ClCompile Include="Sources\glad.cpp" />
+    <ClCompile Include="Sources\Engine\Camera.cpp" />
+    <ClCompile Include="Sources\Engine\Entity.cpp" />
+    <ClCompile Include="Sources\Engine\Scene.cpp" />
+    <ClCompile Include="Sources\Graphics\glad.cpp" />
+    <ClCompile Include="Sources\Graphics\Shader.cpp" />
+    <ClCompile Include="Sources\Graphics\stb_image.cpp" />
+    <ClCompile Include="Sources\Graphics\Texture.cpp" />
     <ClCompile Include="Sources\Main.cpp" />
-    <ClCompile Include="Sources\stb_image.cpp" />
-    <ClCompile Include="Sources\Texture.cpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="Camera.h" />
-    <ClInclude Include="Sources\Shader.h" />
-    <ClInclude Include="Sources\stb_image.h" />
-    <ClInclude Include="Sources\Texture.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Assets\Shaders\Fragment.frag" />
     <None Include="Assets\Shaders\Vertex.vert" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Sources\Engine\Camera.h" />
+    <ClInclude Include="Sources\Engine\Entity.h" />
+    <ClInclude Include="Sources\Engine\Scene.h" />
+    <ClInclude Include="Sources\Graphics\Shader.h" />
+    <ClInclude Include="Sources\Graphics\stb_image.h" />
+    <ClInclude Include="Sources\Graphics\Texture.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

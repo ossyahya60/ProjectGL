@@ -20,6 +20,7 @@ public:
 	void setTextureFiltering(int minFilter, int maxFilter);
 	void bindTexture();
 	void deleteTexture();
+	~Texture();
 private:
 	unsigned int textureID;
 };

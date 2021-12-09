@@ -23,11 +23,11 @@ public:
     void setBool(const char* name, bool value) const;
     void setInt(const char* name, int value) const;
     void setFloat(const char* name, float value) const;
-    void setVec2(const char* name, float valueX, float valueY) const;
-    void setVec3(const char* name, float valueX, float valueY, float valueZ) const;
-    void setVec4(const char* name, float valueX, float valueY, float valueZ, float valueW) const;
+    void setVecf(const char* name, uint32_t count, const GLfloat* value) const;
+    void setVeci(const char* name, uint32_t count, const GLint* value) const;
     void setMat4(const char* name, int count, const GLfloat* value) const;
     void deleteShader() const;
+    ~Shader();
 };
 
 #endif

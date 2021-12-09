@@ -100,19 +100,14 @@ void Shader::setFloat(const char* name, float value) const
     glUniform1f(glGetUniformLocation(ID, name), value);
 }
 
-void Shader::setVec2(const char* name, float valueX, float valueY) const
+void Shader::setVecf(const char* name, uint32_t count, const GLfloat* value) const
 {
-    glUniform2f(glGetUniformLocation(ID, name), valueX, valueY);
+    glUniform1fv(glGetUniformLocation(ID, name), count, value);
 }
 
-void Shader::setVec3(const char* name, float valueX, float valueY, float valueZ) const
+void Shader::setVeci(const char* name, uint32_t count, const GLint* value) const
 {
-    glUniform3f(glGetUniformLocation(ID, name), valueX, valueY, valueZ);
-}
-
-void Shader::setVec4(const char* name, float valueX, float valueY, float valueZ, float valueW) const
-{
-    glUniform4f(glGetUniformLocation(ID, name), valueX, valueY, valueZ, valueW);
+    glUniform1iv(glGetUniformLocation(ID, name), count, value);
 }
 
 void Shader::setMat4(const char* name, int count, const GLfloat* value) const
@@ -124,4 +119,9 @@ void Shader::setMat4(const char* name, int count, const GLfloat* value) const
 void Shader::deleteShader() const
 {
     glDeleteProgram(ID);
+}
+
+Shader::~Shader()
+{
+    deleteShader();
 }

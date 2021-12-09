@@ -12,8 +12,8 @@ Texture::Texture()
 	glBindTexture(GL_TEXTURE_2D, textureID); //for 2D textures?
 
 	//texture wrapping
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_MIRRORED_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
 	//texture filtering
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST); //mipmap option => tex filtering: linear, mipmap: linear between two
@@ -32,8 +32,8 @@ Texture::Texture(const char* name, bool isPng)
 	glBindTexture(GL_TEXTURE_2D, textureID); //for 2D textures?
 
 	//texture wrapping
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_MIRRORED_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
 	//texture filtering
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST); //mipmap option => tex filtering: linear, mipmap: linear between two
@@ -97,4 +97,9 @@ void Texture::bindTexture()
 void Texture::deleteTexture() //don't call this unless you won't use it anymore
 {
 	glDeleteTextures(1, &textureID);
+}
+
+Texture::~Texture()
+{
+	deleteTexture();
 }

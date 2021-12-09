@@ -1,15 +1,45 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include <iostream>
-#include "Shader.h"
+#include "Graphics/Shader.h"
 #include <filesystem>
-#include "stb_image.h"
+#include "Graphics/stb_image.h"
 #include <glm/glm.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtc/matrix_transform.hpp>
-#include "Texture.h"
+#include "Graphics/Texture.h"
+#include <entt/entt.hpp>
 
 GLFWwindow* window = NULL;
+
+struct Vector2
+{
+    float x;
+    float y;
+};
+
+struct Vector3
+{
+    float x;
+    float y;
+    float z;
+};
+
+struct Vector4
+{
+    float x;
+    float y;
+    float z;
+    float w;
+};
+
+struct Vertex //keep this order!!
+{
+    Vector3 position;
+    Vector2 texCoord;
+    Vector4 color;
+    float texID;
+};
 
 //camera parameters
 glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, 3.0f);
@@ -30,6 +60,7 @@ float roll = 0.0f;
 float sensetivity = 0.1f;
 bool firstMouse = true;
 float fov = 45;
+glm::vec3 sideWaysMatrix;
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height) //On Resize function callback
 {
@@ -75,13 +106,13 @@ void processInput(GLFWwindow* window)
         glfwSetWindowShouldClose(window, true);
 
     if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-        cameraPos += cameraSpeed * cameraFront;
+        cameraPos += cameraSpeed * cameraUp;
     if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-        cameraPos -= cameraSpeed * cameraFront;
+        cameraPos -= cameraSpeed * cameraUp;
     if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-        cameraPos -= glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
+        cameraPos -= sideWaysMatrix * cameraSpeed;
     if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-        cameraPos += glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
+        cameraPos += sideWaysMatrix * cameraSpeed;
 
 }
 
@@ -125,9 +156,42 @@ void cleanUp()
     glfwTerminate(); //Clean up
 }
 
+static Vertex* createQuad(Vertex* target, float x, float y, float texID)
+{
+    float size = 1.0f;
+
+    target->position = { x, y, 0.0f };
+    target->texCoord = { 0.0f, 0.0f };
+    target->color = { 1.0f, 0.0f, 0.0f, 1.0f };
+    target->texID = texID;
+    target++;
+
+    target->position = { x + size,  y, 0.0f };
+    target->texCoord = { 1.0f, 0.0f };
+    target->color = { 1.0f, 0.0f, 0.0f, 1.0f };
+    target->texID = texID;
+    target++;
+
+    target->position = { x + size,  y + size, 0.0f };
+    target->texCoord = { 1.0f, 1.0f };
+    target->color = { 1.0f, 0.0f, 0.0f, 1.0f };
+    target->texID = texID;
+    target++;
+
+    target->position = { x,  y + size, 0.0f };
+    target->texCoord = { 0.0f, 1.0f };
+    target->color = { 1.0f, 0.0f, 0.0f, 1.0f };
+    target->texID = texID;
+    target++;
+
+    return target;
+}
+
 int main()
 {
     init();
+
+    sideWaysMatrix = glm::normalize(glm::cross(cameraFront, cameraUp));
 
     std::string projectPath = std::filesystem::current_path().string();
     std::replace(projectPath.begin(), projectPath.end(), '\\', '/');
@@ -135,118 +199,87 @@ int main()
     //I should provide a relative path to the project
     Shader mainShader(projectPath + "/Assets/Shaders/Vertex.vert", projectPath + "/Assets/Shaders/Fragment.frag");
 
-    //render a rectangle
-    //float vertices[] = {
-    //    // positions          // colors           // texture coords
-    //     0.5f,  0.5f, 0.0f,   1.0f, 0.0f, 0.0f,   1.0f, 1.0f,   // top right
-    //     0.5f, -0.5f, 0.0f,   0.0f, 1.0f, 0.0f,   1.0f, 0.0f,   // bottom right
-    //    -0.5f, -0.5f, 0.0f,   0.0f, 0.0f, 1.0f,   0.0f, 0.0f,   // bottom left
-    //    -0.5f,  0.5f, 0.0f,   1.0f, 1.0f, 0.0f,   0.0f, 1.0f    // top left 
-    //};
-
     //render a cube without indices
-    float vertices[] = {
-        -0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
-         0.5f, -0.5f, -0.5f,  1.0f, 0.0f,
-         0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-         0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-        -0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
-        -0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
+    /*float vertices[] = {
+        -1.5f,  0.5f, 0.0f,  0.0f, 1.0f,  1.0, 0.0, 0.0, 1.0,  0.0,  //pos, texCoord, color, texID
+        -1.5f, -0.5f, 0.0f,  0.0f, 0.0f,  1.0, 0.0, 0.0, 1.0,  0.0,
+        -0.5f,  0.5f, 0.0f,  1.0f, 1.0f,  1.0, 0.0, 0.0, 1.0,  0.0,
+        -0.5f, -0.5f, 0.0f,  1.0f, 0.0f,  1.0, 0.0, 0.0, 1.0,  0.0,
 
-        -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-         0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
-         0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
-         0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
-        -0.5f,  0.5f,  0.5f,  0.0f, 1.0f,
-        -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+         0.5f,  0.5f, 0.0f,  0.0f, 1.0f,  0.0, 1.0, 0.0, 1.0,  1.0,
+         0.5f, -0.5f, 0.0f,  0.0f, 0.0f,  0.0, 1.0, 0.0, 1.0,  1.0,
+         1.5f,  0.5f, 0.0f,  1.0f, 1.0f,  0.0, 1.0, 0.0, 1.0,  1.0,
+         1.5f, -0.5f, 0.0f,  1.0f, 0.0f,  0.0, 1.0, 0.0, 1.0,  1.0,
+    };*/
 
-        -0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-        -0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-        -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-        -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-        -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-        -0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+    const size_t maxQuadCount = 1000;
+    const size_t maxVerticesCount = maxQuadCount * 4;
+    const size_t maxIndexCount = maxQuadCount * 6;
 
-         0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-         0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-         0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-         0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-         0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-         0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+    /*unsigned int indices[] = {
+        0, 1, 2, // first triangle
+        2, 3, 0,  // second triangle
 
-        -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-         0.5f, -0.5f, -0.5f,  1.0f, 1.0f,
-         0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
-         0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
-        -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-        -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+        4, 5, 6, // third triangle
+        6, 7, 4  // fourth triangle
+    };*/
 
-        -0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
-         0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-         0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-         0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-        -0.5f,  0.5f,  0.5f,  0.0f, 0.0f,
-        -0.5f,  0.5f, -0.5f,  0.0f, 1.0f
-    };
+    unsigned int indices[maxIndexCount];
 
-    float vertices2[] = {
-        0.5f,  0.5f, 0.0f,  // top right
-        0.5f, -0.5f, 0.0f,  // bottom right
-        1.0f, -0.5f, 0.0f  // right most
-    };
+    int offset = 0;
+    for (size_t i = 0; i < maxIndexCount; i += 6)
+    {
+        indices[i] = offset;
+        indices[i + 1] = offset + 1;
+        indices[i + 2] = offset + 2;
+        indices[i + 3] = offset + 2;
+        indices[i + 4] = offset + 3;
+        indices[i + 5] = offset + 0;
 
-    unsigned int indices[] = {
-        0, 1, 3, // first triangle
-        1, 2, 3  // second triangle
-    };
+        offset += 4;
+    }
 
-    unsigned int VAO[2]; //vertex array object
-    glGenVertexArrays(2, VAO);
+    unsigned int VAO; //vertex array object
+    glGenVertexArrays(1, &VAO);
 
-    unsigned int VBO[2];
-    glGenBuffers(2, VBO);
+    unsigned int VBO;
+    glGenBuffers(1, &VBO);
 
     unsigned int EBO;
     glGenBuffers(1, &EBO);
 
     // 0. copy our vertices array in a buffer for OpenGL to use
-    glBindVertexArray(VAO[0]);
-    glBindBuffer(GL_ARRAY_BUFFER, VBO[0]);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+    glBindVertexArray(VAO);
+    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(Vertex) * maxVerticesCount, nullptr, GL_DYNAMIC_DRAW); //capable of storing 1000 vertices (250 quads)
 
     //using buffer element for complex shapes
-    //glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-    //glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
 
     //pos
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (const void*)offsetof(Vertex, position));
     glEnableVertexAttribArray(0);
 
     //color
-    /*glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
-    glEnableVertexAttribArray(1);*/
+    glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(Vertex), (const void*)offsetof(Vertex, color));
+    glEnableVertexAttribArray(1);
 
     // texture coord attribute
-    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (const void*)offsetof(Vertex, texCoord));
     glEnableVertexAttribArray(2);
 
-    /*glBindVertexArray(VAO[1]);
-    glBindBuffer(GL_ARRAY_BUFFER, VBO[1]);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices2), vertices2, GL_STATIC_DRAW);*/
+    // texture id attribute
+    glVertexAttribPointer(3, 1, GL_FLOAT, GL_FALSE, sizeof(Vertex), (const void*)offsetof(Vertex, texID));
+    glEnableVertexAttribArray(3);
 
     ///////////////textures/////////////////////////
     Texture mamdouh = Texture("/Assets/Textures/Mamdouh.png", true);
     Texture container = Texture("/Assets/Textures/container.jpg", false);
 
-    float texCoords[] = {
-    0.0f, 0.0f,  // lower-left corner  
-    1.0f, 0.0f,  // lower-right corner
-    0.5f, 1.0f   // top-center corner
-    };
-
+    int samplers[2] = { 0, 1 };
     mainShader.use();
-    mainShader.setInt("texture1", 0);
-    mainShader.setInt("texture2", 1);
+    mainShader.setVeci("textures", 2, samplers);
 
     //enable depth testing
     glEnable(GL_DEPTH_TEST);
@@ -259,29 +292,57 @@ int main()
         // process input
         processInput(window);
 
+        // set dynamic vertex buffer data
+        /*float vertices[] = {
+            -1.5f,  0.5f, 0.0f,  0.0f, 1.0f,  1.0, 0.0, 0.0, 1.0,  0.0,  //pos, texCoord, color, texID
+            -1.5f, -0.5f, 0.0f,  0.0f, 0.0f,  1.0, 0.0, 0.0, 1.0,  0.0,
+            -0.5f,  0.5f, 0.0f,  1.0f, 1.0f,  1.0, 0.0, 0.0, 1.0,  0.0,
+            -0.5f, -0.5f, 0.0f,  1.0f, 0.0f,  1.0, 0.0, 0.0, 1.0,  0.0,
+
+             0.5f,  0.5f, 0.0f,  0.0f, 1.0f,  0.0, 1.0, 0.0, 1.0,  1.0,
+             0.5f, -0.5f, 0.0f,  0.0f, 0.0f,  0.0, 1.0, 0.0, 1.0,  1.0,
+             1.5f,  0.5f, 0.0f,  1.0f, 1.0f,  0.0, 1.0, 0.0, 1.0,  1.0,
+             1.5f, -0.5f, 0.0f,  1.0f, 0.0f,  0.0, 1.0, 0.0, 1.0,  1.0,
+        };*/
+
+        unsigned int indexCount = 0;
+        std::array<Vertex, 1000> vertices;
+        Vertex* buffer = vertices.data();
+        for (int i = 0; i < 5; i++)
+        {
+            for (int j = 0; j < 5; j++)
+            {
+                buffer = createQuad(buffer, j, i, (i + j) % 2);
+                indexCount += 6;
+            }
+        }
+
+        glBindBuffer(GL_ARRAY_BUFFER, VBO);
+        glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(Vertex) * vertices.size(), vertices.data());
+
         //render stuff
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); //we clear both buffers: color and depth
 
         // 2. use our shader program when we want to render an object
         float timeValue = (float)glfwGetTime();
-        float greenValue = (sin(timeValue) / 2.0f) + 0.5f;
-        int vertexColorLocation = glGetUniformLocation(mainShader.ID, "color");
 
+        mainShader.use();
         glActiveTexture(GL_TEXTURE0);
         mamdouh.bindTexture();
 
-        mainShader.use();
-        glUniform4f(vertexColorLocation, 0.0f, greenValue, 0.0f, 1.0f);
+        glActiveTexture(GL_TEXTURE1);
+        container.bindTexture();
         
         //model matrix
         glm::mat4 model = glm::mat4(1.0f);
         model = glm::rotate(model, 0.0f, glm::vec3(0.5f, 1.0f, 0.0f));
 
-        cameraFront.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch)); //cos pitch * sin yaw
-        cameraFront.y = sin(glm::radians(-pitch)); //sin pitch (yaw must be initialized to -90 to face -z axis)
-        cameraFront.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch)); //cos pitch * cos yaw
-        cameraFront = glm::normalize(cameraFront);
+        //Camera stuff
+        //cameraFront.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch)); //cos pitch * sin yaw
+        //cameraFront.y = sin(glm::radians(-pitch)); //sin pitch (yaw must be initialized to -90 to face -z axis)
+        //cameraFront.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch)); //cos pitch * cos yaw
+        //cameraFront = glm::normalize(cameraFront);
 
         //view matrix
         glm::mat4 view;
@@ -297,20 +358,13 @@ int main()
         mainShader.setMat4("view", 1, glm::value_ptr(view));
         mainShader.setMat4("projection", 1, glm::value_ptr(projection));
 
-        glBindVertexArray(VAO[0]);
+        glBindVertexArray(VAO);
         // 3. now draw the object 
-        glDrawArrays(GL_TRIANGLES, 0, 36);
-        //glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
-
-        //glUseProgram(shaderProgram2);
-        //glBindVertexArray(VAO[1]);
-        // 3. now draw the object 
-        //glDrawArrays(GL_TRIANGLES, 0, 3);
+        glDrawElements(GL_TRIANGLES, indexCount, GL_UNSIGNED_INT, 0);
         
         //wireframe mode
         //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
-        //glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
         glBindVertexArray(0);
         //
 

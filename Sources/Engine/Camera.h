@@ -1,5 +1,5 @@
-#ifndef TEXTURE_H
-#define TEXTURE_H
+#ifndef CAMERA_H
+#define CAMERA_H
 
 //this should be a component
 class Camera
