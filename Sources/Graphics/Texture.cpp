@@ -1,11 +1,14 @@
 #include "Texture.h"
 
+int Texture::nextFreeID = 1;
+
 Texture::Texture()
 {
-	width = 100;
-	height = 100;
+	width = 1;
+	height = 1;
 	numberOfChannels = 3;
 	textureID = 0;
+	assignedTexID = 0;
 
 	glGenTextures(1, &textureID);
 
@@ -18,14 +21,17 @@ Texture::Texture()
 	//texture filtering
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST); //mipmap option => tex filtering: linear, mipmap: linear between two
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, &color);
 }
 
 Texture::Texture(const char* name, bool isPng)
 {
-	width = 100;
-	height = 100;
-	numberOfChannels = 3;
+	width = 1;
+	height = 1;
+	numberOfChannels = isPng? 4 : 3;
 	textureID = 0;
+	assignedTexID = 0;
 
 	glGenTextures(1, &textureID);
 
@@ -40,6 +46,16 @@ Texture::Texture(const char* name, bool isPng)
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
 	loadTexture(name, isPng);
+}
+
+GLuint Texture::getTexID()
+{
+	return assignedTexID;
+}
+
+void Texture::setTexID(unsigned int texID)
+{
+	assignedTexID = texID;
 }
 
 bool Texture::loadTexture(const char* name, bool isPng)
@@ -97,7 +113,7 @@ void Texture::bindTexture()
 void Texture::deleteTexture() //don't call this unless you won't use it anymore
 {
 	glDeleteTextures(1, &textureID);
-}
+} 
 
 Texture::~Texture()
 {

@@ -9,37 +9,9 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include "Graphics/Texture.h"
 #include <entt/entt.hpp>
+#include "Graphics/SpriteBatch.h"
 
 GLFWwindow* window = NULL;
-
-struct Vector2
-{
-    float x;
-    float y;
-};
-
-struct Vector3
-{
-    float x;
-    float y;
-    float z;
-};
-
-struct Vector4
-{
-    float x;
-    float y;
-    float z;
-    float w;
-};
-
-struct Vertex //keep this order!!
-{
-    Vector3 position;
-    Vector2 texCoord;
-    Vector4 color;
-    float texID;
-};
 
 //camera parameters
 glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, 3.0f);
@@ -148,7 +120,7 @@ void init()
     glfwSetScrollCallback(window, scroll_callback); //mouse wheel movement callback
 
     //disable cursor (cursor will not leave the window and will be hidden)
-    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    //glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 }
 
 void cleanUp()
@@ -156,40 +128,12 @@ void cleanUp()
     glfwTerminate(); //Clean up
 }
 
-static Vertex* createQuad(Vertex* target, float x, float y, float texID)
-{
-    float size = 1.0f;
-
-    target->position = { x, y, 0.0f };
-    target->texCoord = { 0.0f, 0.0f };
-    target->color = { 1.0f, 0.0f, 0.0f, 1.0f };
-    target->texID = texID;
-    target++;
-
-    target->position = { x + size,  y, 0.0f };
-    target->texCoord = { 1.0f, 0.0f };
-    target->color = { 1.0f, 0.0f, 0.0f, 1.0f };
-    target->texID = texID;
-    target++;
-
-    target->position = { x + size,  y + size, 0.0f };
-    target->texCoord = { 1.0f, 1.0f };
-    target->color = { 1.0f, 0.0f, 0.0f, 1.0f };
-    target->texID = texID;
-    target++;
-
-    target->position = { x,  y + size, 0.0f };
-    target->texCoord = { 0.0f, 1.0f };
-    target->color = { 1.0f, 0.0f, 0.0f, 1.0f };
-    target->texID = texID;
-    target++;
-
-    return target;
-}
-
 int main()
 {
     init();
+
+    //enable depth testing
+    glEnable(GL_DEPTH_TEST);
 
     sideWaysMatrix = glm::normalize(glm::cross(cameraFront, cameraUp));
 
@@ -199,90 +143,17 @@ int main()
     //I should provide a relative path to the project
     Shader mainShader(projectPath + "/Assets/Shaders/Vertex.vert", projectPath + "/Assets/Shaders/Fragment.frag");
 
-    //render a cube without indices
-    /*float vertices[] = {
-        -1.5f,  0.5f, 0.0f,  0.0f, 1.0f,  1.0, 0.0, 0.0, 1.0,  0.0,  //pos, texCoord, color, texID
-        -1.5f, -0.5f, 0.0f,  0.0f, 0.0f,  1.0, 0.0, 0.0, 1.0,  0.0,
-        -0.5f,  0.5f, 0.0f,  1.0f, 1.0f,  1.0, 0.0, 0.0, 1.0,  0.0,
-        -0.5f, -0.5f, 0.0f,  1.0f, 0.0f,  1.0, 0.0, 0.0, 1.0,  0.0,
-
-         0.5f,  0.5f, 0.0f,  0.0f, 1.0f,  0.0, 1.0, 0.0, 1.0,  1.0,
-         0.5f, -0.5f, 0.0f,  0.0f, 0.0f,  0.0, 1.0, 0.0, 1.0,  1.0,
-         1.5f,  0.5f, 0.0f,  1.0f, 1.0f,  0.0, 1.0, 0.0, 1.0,  1.0,
-         1.5f, -0.5f, 0.0f,  1.0f, 0.0f,  0.0, 1.0, 0.0, 1.0,  1.0,
-    };*/
-
-    const size_t maxQuadCount = 1000;
-    const size_t maxVerticesCount = maxQuadCount * 4;
-    const size_t maxIndexCount = maxQuadCount * 6;
-
-    /*unsigned int indices[] = {
-        0, 1, 2, // first triangle
-        2, 3, 0,  // second triangle
-
-        4, 5, 6, // third triangle
-        6, 7, 4  // fourth triangle
-    };*/
-
-    unsigned int indices[maxIndexCount];
-
-    int offset = 0;
-    for (size_t i = 0; i < maxIndexCount; i += 6)
-    {
-        indices[i] = offset;
-        indices[i + 1] = offset + 1;
-        indices[i + 2] = offset + 2;
-        indices[i + 3] = offset + 2;
-        indices[i + 4] = offset + 3;
-        indices[i + 5] = offset + 0;
-
-        offset += 4;
-    }
-
-    unsigned int VAO; //vertex array object
-    glGenVertexArrays(1, &VAO);
-
-    unsigned int VBO;
-    glGenBuffers(1, &VBO);
-
-    unsigned int EBO;
-    glGenBuffers(1, &EBO);
-
-    // 0. copy our vertices array in a buffer for OpenGL to use
-    glBindVertexArray(VAO);
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(Vertex) * maxVerticesCount, nullptr, GL_DYNAMIC_DRAW); //capable of storing 1000 vertices (250 quads)
-
-    //using buffer element for complex shapes
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
-
-    //pos
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (const void*)offsetof(Vertex, position));
-    glEnableVertexAttribArray(0);
-
-    //color
-    glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(Vertex), (const void*)offsetof(Vertex, color));
-    glEnableVertexAttribArray(1);
-
-    // texture coord attribute
-    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (const void*)offsetof(Vertex, texCoord));
-    glEnableVertexAttribArray(2);
-
-    // texture id attribute
-    glVertexAttribPointer(3, 1, GL_FLOAT, GL_FALSE, sizeof(Vertex), (const void*)offsetof(Vertex, texID));
-    glEnableVertexAttribArray(3);
-
     ///////////////textures/////////////////////////
     Texture mamdouh = Texture("/Assets/Textures/Mamdouh.png", true);
     Texture container = Texture("/Assets/Textures/container.jpg", false);
 
-    int samplers[2] = { 0, 1 };
+    int samplers[16];
+    for (int i = 0; i < 16; i++)
+        samplers[i] = i;
     mainShader.use();
-    mainShader.setVeci("textures", 2, samplers);
+    mainShader.setVeci("textures", 16, samplers);
 
-    //enable depth testing
-    glEnable(GL_DEPTH_TEST);
+    SpriteBatch::init();
 
     while (!glfwWindowShouldClose(window))
     {
@@ -292,34 +163,6 @@ int main()
         // process input
         processInput(window);
 
-        // set dynamic vertex buffer data
-        /*float vertices[] = {
-            -1.5f,  0.5f, 0.0f,  0.0f, 1.0f,  1.0, 0.0, 0.0, 1.0,  0.0,  //pos, texCoord, color, texID
-            -1.5f, -0.5f, 0.0f,  0.0f, 0.0f,  1.0, 0.0, 0.0, 1.0,  0.0,
-            -0.5f,  0.5f, 0.0f,  1.0f, 1.0f,  1.0, 0.0, 0.0, 1.0,  0.0,
-            -0.5f, -0.5f, 0.0f,  1.0f, 0.0f,  1.0, 0.0, 0.0, 1.0,  0.0,
-
-             0.5f,  0.5f, 0.0f,  0.0f, 1.0f,  0.0, 1.0, 0.0, 1.0,  1.0,
-             0.5f, -0.5f, 0.0f,  0.0f, 0.0f,  0.0, 1.0, 0.0, 1.0,  1.0,
-             1.5f,  0.5f, 0.0f,  1.0f, 1.0f,  0.0, 1.0, 0.0, 1.0,  1.0,
-             1.5f, -0.5f, 0.0f,  1.0f, 0.0f,  0.0, 1.0, 0.0, 1.0,  1.0,
-        };*/
-
-        unsigned int indexCount = 0;
-        std::array<Vertex, 1000> vertices;
-        Vertex* buffer = vertices.data();
-        for (int i = 0; i < 5; i++)
-        {
-            for (int j = 0; j < 5; j++)
-            {
-                buffer = createQuad(buffer, j, i, (i + j) % 2);
-                indexCount += 6;
-            }
-        }
-
-        glBindBuffer(GL_ARRAY_BUFFER, VBO);
-        glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(Vertex) * vertices.size(), vertices.data());
-
         //render stuff
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); //we clear both buffers: color and depth
@@ -328,11 +171,6 @@ int main()
         float timeValue = (float)glfwGetTime();
 
         mainShader.use();
-        glActiveTexture(GL_TEXTURE0);
-        mamdouh.bindTexture();
-
-        glActiveTexture(GL_TEXTURE1);
-        container.bindTexture();
         
         //model matrix
         glm::mat4 model = glm::mat4(1.0f);
@@ -357,21 +195,26 @@ int main()
         mainShader.setMat4("model", 1, glm::value_ptr(model));
         mainShader.setMat4("view", 1, glm::value_ptr(view));
         mainShader.setMat4("projection", 1, glm::value_ptr(projection));
-
-        glBindVertexArray(VAO);
-        // 3. now draw the object 
-        glDrawElements(GL_TRIANGLES, indexCount, GL_UNSIGNED_INT, 0);
         
         //wireframe mode
         //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
-        glBindVertexArray(0);
-        //
+        SpriteBatch::resetStats();
+        SpriteBatch::begin();
+
+        SpriteBatch::drawQuad(glm::vec2(0.0f, 0.0f), glm::vec2(0.5f, 0.5f), glm::vec4(1.0f, 0.0f, 1.0f, 1.0f), &mamdouh);
+
+        SpriteBatch::end();
+
+        mainShader.use();
+        SpriteBatch::flush();
 
         // check and call events and swap the buffers
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
+
+    SpriteBatch::shutDown();
 
     container.deleteTexture();
     mamdouh.deleteTexture();

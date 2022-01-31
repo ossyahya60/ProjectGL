@@ -6,10 +6,10 @@ in vec2 texCoord; //coming from vertex shader
 in vec4 color;
 in float texIndex;
 
-uniform sampler2D textures[2];
+uniform sampler2D textures[16]; //"16" should be dynamic somehow
 
 void main()
 {
     int tIndex = int(texIndex);
-    FragColor = texture(texIndex == 0.0? textures[tIndex] : textures[tIndex], texCoord) * color;
+    FragColor = texture(textures[tIndex], texCoord) * color;
 }

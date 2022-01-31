@@ -159,6 +159,7 @@
     <ClCompile Include="Sources\Graphics\stb_image.cpp" />
     <ClCompile Include="Sources\Graphics\Texture.cpp" />
     <ClCompile Include="Sources\Main.cpp" />
+    <ClCompile Include="Sources\Graphics\SpriteBatch.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Assets\Shaders\Fragment.frag" />
@@ -171,6 +172,7 @@
     <ClInclude Include="Sources\Graphics\Shader.h" />
     <ClInclude Include="Sources\Graphics\stb_image.h" />
     <ClInclude Include="Sources\Graphics\Texture.h" />
+    <ClInclude Include="Sources\Graphics\SpriteBatch.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
